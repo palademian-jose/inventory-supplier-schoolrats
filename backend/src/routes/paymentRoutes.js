@@ -13,7 +13,7 @@ router.get(
   "/",
   asyncHandler(async (_req, res) => {
     const rows = await query(
-      `SELECT p.*, po.order_number, po.total_amount,
+      `SELECT p.*, po.order_number, po.total_amount, u.full_name AS paid_by_name,
               CASE
                 WHEN IFNULL(summary.paid_amount, 0) >= po.total_amount THEN 'Paid'
                 WHEN IFNULL(summary.paid_amount, 0) > 0 THEN 'Partial'
@@ -21,6 +21,7 @@ router.get(
               END AS payment_status
        FROM purchase_orders po
        LEFT JOIN payments p ON p.purchase_order_id = po.id
+       LEFT JOIN users u ON u.id = p.paid_by
        LEFT JOIN (
          SELECT purchase_order_id, SUM(amount) AS paid_amount
          FROM payments
@@ -43,9 +44,9 @@ router.post(
   asyncHandler(async (req, res) => {
     const { purchase_order_id, amount, payment_method = "Cash", notes = "" } = req.body;
     const result = await query(
-      `INSERT INTO payments (purchase_order_id, amount, payment_method, notes)
-       VALUES (?, ?, ?, ?)`,
-      [purchase_order_id, amount, payment_method, notes]
+      `INSERT INTO payments (purchase_order_id, paid_by, amount, payment_method, notes)
+       VALUES (?, ?, ?, ?, ?)`,
+      [purchase_order_id, req.user.id, amount, payment_method, notes]
     );
     const created = await query("SELECT * FROM payments WHERE id = ?", [result.insertId]);
     res.status(201).json(created[0]);

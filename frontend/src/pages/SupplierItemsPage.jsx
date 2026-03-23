@@ -5,7 +5,7 @@ import ConfirmDialog from "../components/ConfirmDialog";
 import DataTable from "../components/DataTable";
 import Modal from "../components/Modal";
 
-export default function SupplierItemsPage() {
+export default function SupplierCatalogPage() {
   const [mappings, setMappings] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
   const [items, setItems] = useState([]);
@@ -15,6 +15,8 @@ export default function SupplierItemsPage() {
   const [form, setForm] = useState({
     supplier_id: "",
     item_id: "",
+    supplier_sku: "",
+    is_preferred: false,
     supplier_price: "",
     lead_time_days: ""
   });
@@ -22,7 +24,7 @@ export default function SupplierItemsPage() {
   const loadData = async () => {
     try {
       const [mappingRows, supplierRows, itemRows] = await Promise.all([
-        fetchResource("/supplier-items"),
+        fetchResource("/supplier-catalog"),
         fetchResource("/suppliers", { page: 1, limit: 100 }),
         fetchResource("/items", { page: 1, limit: 100 })
       ]);
@@ -30,7 +32,7 @@ export default function SupplierItemsPage() {
       setSuppliers(supplierRows.data);
       setItems(itemRows.data);
     } catch (error) {
-      toast.error(error.response?.data?.message || "Failed to load supplier item data");
+      toast.error(error.response?.data?.message || "Failed to load supplier catalog data");
     }
   };
 
@@ -60,26 +62,35 @@ export default function SupplierItemsPage() {
     }
 
     try {
-      await createResource("/supplier-items", {
+      await createResource("/supplier-catalog", {
         supplier_id: Number(form.supplier_id),
         item_id: Number(form.item_id),
+        supplier_sku: form.supplier_sku || null,
+        is_preferred: Boolean(form.is_preferred),
         supplier_price: Number(form.supplier_price),
         lead_time_days: Number(form.lead_time_days)
       });
-      toast.success("Mapping saved");
+      toast.success("Catalog entry saved");
       setIsOpen(false);
       setErrors({});
-      setForm({ supplier_id: "", item_id: "", supplier_price: "", lead_time_days: "" });
+      setForm({
+        supplier_id: "",
+        item_id: "",
+        supplier_sku: "",
+        is_preferred: false,
+        supplier_price: "",
+        lead_time_days: ""
+      });
       loadData();
     } catch (error) {
-      toast.error(error.response?.data?.message || "Unable to save mapping");
+      toast.error(error.response?.data?.message || "Unable to save supplier catalog entry");
     }
   };
 
   const handleDelete = async () => {
     try {
-      await deleteResource("/supplier-items", deleteTarget.id);
-      toast.success("Mapping deleted");
+      await deleteResource("/supplier-catalog", deleteTarget.id);
+      toast.success("Catalog entry deleted");
       setDeleteTarget(null);
       loadData();
     } catch (error) {
@@ -93,17 +104,17 @@ export default function SupplierItemsPage() {
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
-              Relationship Setup
+              Procurement Master Data
             </p>
             <h3 className="mt-2 text-2xl font-semibold tracking-tight text-slate-900">
-              Supplier-Item Mapping
+              Supplier Catalog
             </h3>
             <p className="mt-2 text-sm leading-6 text-slate-500">
-              Assign items to suppliers with price and lead time.
+              Define which items each supplier can provide, including price and lead time.
             </p>
           </div>
           <button type="button" className="btn-primary" onClick={() => setIsOpen(true)}>
-            Add Mapping
+            Add Catalog Entry
           </button>
         </div>
       </div>
@@ -112,16 +123,18 @@ export default function SupplierItemsPage() {
         columns={[
           { key: "supplier_name", label: "Supplier" },
           { key: "item_name", label: "Item" },
+          { key: "supplier_sku", label: "Supplier SKU", render: (row) => row.supplier_sku || "-" },
+          { key: "is_preferred", label: "Preferred", render: (row) => (row.is_preferred ? "Yes" : "No") },
           { key: "supplier_price", label: "Supplier Price", render: (row) => `$${Number(row.supplier_price).toFixed(2)}` },
           { key: "lead_time_days", label: "Lead Time (days)" }
         ]}
         rows={mappings}
         emptyState={{
-          title: "No supplier mappings yet",
-          description: "Connect suppliers to items so procurement can reference supplier price and lead time.",
+          title: "No supplier catalog entries yet",
+          description: "Link suppliers to the items they can provide so purchasing can reference vendor pricing and lead time.",
           action: (
             <button type="button" className="btn-primary" onClick={() => setIsOpen(true)}>
-              Add Mapping
+              Add Catalog Entry
             </button>
           )
         }}
@@ -132,7 +145,7 @@ export default function SupplierItemsPage() {
         )}
       />
 
-      <Modal isOpen={isOpen} title="Add Supplier Item Mapping" onClose={() => setIsOpen(false)}>
+      <Modal isOpen={isOpen} title="Add Supplier Catalog Entry" onClose={() => setIsOpen(false)}>
         <form className="grid gap-4 md:grid-cols-2" onSubmit={handleSubmit}>
           <div>
             <label className="mb-2 block text-sm font-medium text-slate-700">Supplier</label>
@@ -187,6 +200,14 @@ export default function SupplierItemsPage() {
             {errors.supplier_price ? <p className="field-error">{errors.supplier_price}</p> : null}
           </div>
           <div>
+            <label className="mb-2 block text-sm font-medium text-slate-700">Supplier SKU</label>
+            <input
+              className="input"
+              value={form.supplier_sku}
+              onChange={(event) => setForm((prev) => ({ ...prev, supplier_sku: event.target.value }))}
+            />
+          </div>
+          <div>
             <label className="mb-2 block text-sm font-medium text-slate-700">Lead Time Days</label>
             <input
               className={`input ${errors.lead_time_days ? "input-error" : ""}`}
@@ -200,6 +221,16 @@ export default function SupplierItemsPage() {
             />
             {errors.lead_time_days ? <p className="field-error">{errors.lead_time_days}</p> : null}
           </div>
+          <label className="flex items-center gap-3 text-sm font-medium text-slate-700 md:col-span-2">
+            <input
+              type="checkbox"
+              checked={form.is_preferred}
+              onChange={(event) =>
+                setForm((prev) => ({ ...prev, is_preferred: event.target.checked }))
+              }
+            />
+            Preferred supplier for this item
+          </label>
           <div className="flex justify-end gap-3 md:col-span-2">
             <button type="button" className="btn-secondary" onClick={() => setIsOpen(false)}>
               Cancel
@@ -213,8 +244,8 @@ export default function SupplierItemsPage() {
 
       <ConfirmDialog
         isOpen={Boolean(deleteTarget)}
-        title="Delete Mapping"
-        message="Delete this supplier-item mapping?"
+        title="Delete Catalog Entry"
+        message="Delete this supplier catalog entry?"
         onClose={() => setDeleteTarget(null)}
         onConfirm={handleDelete}
       />

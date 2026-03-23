@@ -90,8 +90,7 @@ export default function LoginPage() {
             </p>
             <p className="mt-2 text-sm text-slate-600">
               Accounts: <span className="font-semibold text-slate-800">admin</span>,{" "}
-              <span className="font-semibold text-slate-800">staff</span>,{" "}
-              <span className="font-semibold text-slate-800">member</span>
+              <span className="font-semibold text-slate-800">staff</span>
             </p>
             <p className="mt-1 text-sm text-slate-600">
               Password: <span className="font-semibold text-slate-800">password123</span>

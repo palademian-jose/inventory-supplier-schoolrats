@@ -3,6 +3,7 @@ import toast from "react-hot-toast";
 import { createResource, fetchResource, patchResource } from "../api/resources";
 import DataTable from "../components/DataTable";
 import Modal from "../components/Modal";
+import PurchaseOrderDetailsModal from "../components/PurchaseOrderDetailsModal";
 
 const emptyLine = { item_id: "", quantity: 1, unit_price: 0 };
 
@@ -11,10 +12,12 @@ export default function PurchaseOrdersPage() {
   const [suppliers, setSuppliers] = useState([]);
   const [items, setItems] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState(null);
   const [errors, setErrors] = useState({});
   const [form, setForm] = useState({
     supplier_id: "",
     status: "Pending",
+    expected_delivery_date: "",
     notes: "",
     items: [emptyLine]
   });
@@ -89,6 +92,7 @@ export default function PurchaseOrdersPage() {
       await createResource("/purchase-orders", {
         ...form,
         supplier_id: Number(form.supplier_id),
+        expected_delivery_date: form.expected_delivery_date || null,
         items: form.items.map((line) => ({
           item_id: Number(line.item_id),
           quantity: Number(line.quantity),
@@ -98,7 +102,13 @@ export default function PurchaseOrdersPage() {
       toast.success("Purchase order created");
       setIsOpen(false);
       setErrors({});
-      setForm({ supplier_id: "", status: "Pending", notes: "", items: [emptyLine] });
+      setForm({
+        supplier_id: "",
+        status: "Pending",
+        expected_delivery_date: "",
+        notes: "",
+        items: [emptyLine]
+      });
       loadData();
     } catch (error) {
       toast.error(error.response?.data?.message || "Unable to create purchase order");
@@ -112,6 +122,15 @@ export default function PurchaseOrdersPage() {
       loadData();
     } catch (error) {
       toast.error(error.response?.data?.message || "Status update failed");
+    }
+  };
+
+  const viewOrder = async (row) => {
+    try {
+      const order = await fetchResource(`/purchase-orders/${row.id}`);
+      setSelectedOrder(order);
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to load purchase order details");
     }
   };
 
@@ -141,6 +160,14 @@ export default function PurchaseOrdersPage() {
           { key: "order_number", label: "Order Number" },
           { key: "supplier_name", label: "Supplier" },
           { key: "status", label: "Status", type: "status" },
+          {
+            key: "expected_delivery_date",
+            label: "Expected",
+            render: (row) =>
+              row.expected_delivery_date
+                ? new Date(row.expected_delivery_date).toLocaleDateString()
+                : "-"
+          },
           { key: "total_amount", label: "Total", render: (row) => `$${Number(row.total_amount).toFixed(2)}` },
           { key: "order_date", label: "Date", render: (row) => new Date(row.order_date).toLocaleDateString() }
         ]}
@@ -156,6 +183,9 @@ export default function PurchaseOrdersPage() {
         }}
         actions={(row) => (
           <div className="flex flex-wrap justify-end gap-2">
+            <button type="button" className="btn-secondary" onClick={() => viewOrder(row)}>
+              View
+            </button>
             <button
               type="button"
               className="btn-secondary"
@@ -228,6 +258,19 @@ export default function PurchaseOrdersPage() {
                   </option>
                 ))}
               </select>
+            </div>
+            <div>
+              <label className="mb-2 block text-sm font-medium text-slate-700">
+                Expected Delivery Date
+              </label>
+              <input
+                className="input"
+                type="date"
+                value={form.expected_delivery_date}
+                onChange={(event) =>
+                  setForm((prev) => ({ ...prev, expected_delivery_date: event.target.value }))
+                }
+              />
             </div>
           </div>
 
@@ -361,6 +404,12 @@ export default function PurchaseOrdersPage() {
           </div>
         </form>
       </Modal>
+
+      <PurchaseOrderDetailsModal
+        order={selectedOrder}
+        isOpen={Boolean(selectedOrder)}
+        onClose={() => setSelectedOrder(null)}
+      />
     </div>
   );
 }

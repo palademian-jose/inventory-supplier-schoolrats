@@ -7,17 +7,17 @@ import ResourcePage from "./ResourcePage";
 
 export default function SuppliersPage() {
   const [selectedSupplier, setSelectedSupplier] = useState(null);
-  const [suppliedItems, setSuppliedItems] = useState([]);
+  const [catalogItems, setCatalogItems] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
 
   const viewItems = async (supplier) => {
     try {
       const rows = await fetchResource(`/suppliers/${supplier.id}/items`);
       setSelectedSupplier(supplier);
-      setSuppliedItems(rows);
+      setCatalogItems(rows);
       setIsOpen(true);
     } catch (error) {
-      toast.error(error.response?.data?.message || "Failed to load supplied items");
+      toast.error(error.response?.data?.message || "Failed to load supplier catalog");
     }
   };
 
@@ -37,7 +37,7 @@ export default function SuppliersPage() {
         ]}
         rowActions={(row) => (
           <button type="button" className="btn-secondary" onClick={() => viewItems(row)}>
-            Supplied Items
+            View Catalog
           </button>
         )}
         fields={[
@@ -51,16 +51,18 @@ export default function SuppliersPage() {
 
       <Modal
         isOpen={isOpen}
-        title={`Supplied Items${selectedSupplier ? ` - ${selectedSupplier.name}` : ""}`}
+        title={`Supplier Catalog${selectedSupplier ? ` - ${selectedSupplier.name}` : ""}`}
         onClose={() => setIsOpen(false)}
       >
         <DataTable
           columns={[
             { key: "item_name", label: "Item" },
+            { key: "supplier_sku", label: "Supplier SKU", render: (row) => row.supplier_sku || "-" },
+            { key: "is_preferred", label: "Preferred", render: (row) => (row.is_preferred ? "Yes" : "No") },
             { key: "supplier_price", label: "Supplier Price", render: (row) => `$${Number(row.supplier_price).toFixed(2)}` },
             { key: "lead_time_days", label: "Lead Time (days)" }
           ]}
-          rows={suppliedItems}
+          rows={catalogItems}
         />
       </Modal>
     </>

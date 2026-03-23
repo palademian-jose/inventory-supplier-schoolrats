@@ -15,11 +15,11 @@ This project includes:
 
 - JWT-based login
 - Dashboard summary and recent stock transactions
-- Member, supplier, and item management
-- Supplier-item mapping with supplier price and lead time
+- Recipient, supplier, and item management
+- Supplier catalog management with supplier price and lead time
 - Purchase orders and payment tracking
 - Stock transaction history
-- Issue items to members with stock deduction
+- Stock issue workflow with recipient tracking and stock deduction
 
 ## Project Structure
 
@@ -68,7 +68,6 @@ The seeded database includes these accounts:
 
 - `admin / password123`
 - `staff / password123`
-- `member / password123`
 
 ## Recommended Setup: Podman or Docker
 

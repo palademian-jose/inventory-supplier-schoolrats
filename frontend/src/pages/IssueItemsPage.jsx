@@ -3,11 +3,11 @@ import toast from "react-hot-toast";
 import { createResource, fetchResource } from "../api/resources";
 
 export default function IssueItemsPage() {
-  const [members, setMembers] = useState([]);
+  const [recipients, setRecipients] = useState([]);
   const [items, setItems] = useState([]);
   const [errors, setErrors] = useState({});
   const [form, setForm] = useState({
-    member_id: "",
+    recipient_id: "",
     item_id: "",
     quantity: 1,
     notes: ""
@@ -16,14 +16,14 @@ export default function IssueItemsPage() {
   useEffect(() => {
     const loadOptions = async () => {
       try {
-        const [memberRows, itemRows] = await Promise.all([
-          fetchResource("/members", { page: 1, limit: 100 }),
+        const [recipientRows, itemRows] = await Promise.all([
+          fetchResource("/recipients", { page: 1, limit: 100 }),
           fetchResource("/items", { page: 1, limit: 100 })
         ]);
-        setMembers(memberRows.data);
+        setRecipients(recipientRows.data);
         setItems(itemRows.data);
       } catch (error) {
-        toast.error(error.response?.data?.message || "Failed to load issue item form");
+        toast.error(error.response?.data?.message || "Failed to load stock issue form");
       }
     };
 
@@ -32,7 +32,7 @@ export default function IssueItemsPage() {
 
   const validateForm = () => {
     const nextErrors = {};
-    if (!form.member_id) nextErrors.member_id = "Member is required";
+    if (!form.recipient_id) nextErrors.recipient_id = "Recipient is required";
     if (!form.item_id) nextErrors.item_id = "Item is required";
     if (!form.quantity || Number(form.quantity) <= 0) {
       nextErrors.quantity = "Quantity must be greater than zero";
@@ -49,17 +49,17 @@ export default function IssueItemsPage() {
     }
 
     try {
-      await createResource("/issues", {
-        member_id: Number(form.member_id),
+      await createResource("/stock-issues", {
+        recipient_id: Number(form.recipient_id),
         item_id: Number(form.item_id),
         quantity: Number(form.quantity),
         notes: form.notes
       });
-      toast.success("Item issued successfully");
+      toast.success("Stock issued successfully");
       setErrors({});
-      setForm({ member_id: "", item_id: "", quantity: 1, notes: "" });
+      setForm({ recipient_id: "", item_id: "", quantity: 1, notes: "" });
     } catch (error) {
-      toast.error(error.response?.data?.message || "Unable to issue item");
+      toast.error(error.response?.data?.message || "Unable to issue stock");
     }
   };
 
@@ -67,34 +67,34 @@ export default function IssueItemsPage() {
     <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
       <div className="card p-6">
         <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
-          Member Fulfillment
+          Internal Fulfillment
         </p>
         <h3 className="mt-2 text-2xl font-semibold tracking-tight text-slate-900">
-          Issue Items to Members
+          Record a Stock Issue
         </h3>
         <p className="mt-2 text-sm leading-6 text-slate-500">
-          Select a member, choose an item, and record the quantity.
+          Select the recipient, choose an item, and record the quantity issued.
         </p>
 
         <form className="mt-6 grid gap-4" onSubmit={handleSubmit}>
           <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">Member</label>
+            <label className="mb-2 block text-sm font-medium text-slate-700">Recipient</label>
             <select
-              className={`select ${errors.member_id ? "input-error" : ""}`}
-              value={form.member_id}
+              className={`select ${errors.recipient_id ? "input-error" : ""}`}
+              value={form.recipient_id}
               onChange={(event) => {
-                setForm((prev) => ({ ...prev, member_id: event.target.value }));
-                setErrors((prev) => ({ ...prev, member_id: undefined }));
+                setForm((prev) => ({ ...prev, recipient_id: event.target.value }));
+                setErrors((prev) => ({ ...prev, recipient_id: undefined }));
               }}
             >
-              <option value="">Select member</option>
-              {members.map((member) => (
-                <option key={member.id} value={member.id}>
-                  {member.name}
+              <option value="">Select recipient</option>
+              {recipients.map((recipient) => (
+                <option key={recipient.id} value={recipient.id}>
+                  {recipient.name}
                 </option>
               ))}
             </select>
-            {errors.member_id ? <p className="field-error">{errors.member_id}</p> : null}
+            {errors.recipient_id ? <p className="field-error">{errors.recipient_id}</p> : null}
           </div>
 
           <div>
@@ -142,7 +142,7 @@ export default function IssueItemsPage() {
           </div>
 
           <button type="submit" className="btn-primary">
-            Issue Item
+            Record Issue
           </button>
         </form>
       </div>
@@ -151,7 +151,7 @@ export default function IssueItemsPage() {
         <h3 className="text-xl font-semibold tracking-tight text-slate-900">Prototype Notes</h3>
         <ul className="mt-4 space-y-3 text-sm text-slate-600">
           <li>Stock is reduced automatically after a successful issue.</li>
-          <li>A stock transaction is created with type <strong>ISSUE_TO_MEMBER</strong>.</li>
+          <li>A stock transaction is created with type <strong>STOCK_ISSUE</strong>.</li>
           <li>Server-side validation prevents zero quantity and negative stock.</li>
         </ul>
       </div>

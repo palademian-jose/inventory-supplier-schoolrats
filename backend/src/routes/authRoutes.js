@@ -20,7 +20,7 @@ router.post(
   asyncHandler(async (req, res) => {
     const { username, password } = req.body;
     const users = await query(
-      "SELECT id, username, password_hash, role, full_name FROM users WHERE username = ? LIMIT 1",
+      "SELECT id, username, password_hash, role, full_name, status FROM users WHERE username = ? LIMIT 1",
       [username]
     );
 
@@ -29,6 +29,11 @@ router.post(
     }
 
     const user = users[0];
+
+    if (user.status !== "Active") {
+      throw httpError(403, "This account is inactive");
+    }
+
     const isMatch = await bcrypt.compare(password, user.password_hash);
 
     if (!isMatch) {
@@ -40,7 +45,8 @@ router.post(
         id: user.id,
         username: user.username,
         role: user.role,
-        fullName: user.full_name
+        fullName: user.full_name,
+        status: user.status
       },
       process.env.JWT_SECRET,
       { expiresIn: "8h" }
@@ -52,7 +58,8 @@ router.post(
         id: user.id,
         username: user.username,
         role: user.role,
-        fullName: user.full_name
+        fullName: user.full_name,
+        status: user.status
       }
     });
   })

@@ -89,6 +89,7 @@ export default function PaymentsPage() {
           { key: "order_number", label: "Order Number" },
           { key: "amount", label: "Amount", render: (row) => (row.amount ? `$${Number(row.amount).toFixed(2)}` : "-") },
           { key: "payment_method", label: "Method" },
+          { key: "paid_by_name", label: "Recorded By", render: (row) => row.paid_by_name || "-" },
           { key: "payment_status", label: "Status", type: "status" },
           {
             key: "payment_date",

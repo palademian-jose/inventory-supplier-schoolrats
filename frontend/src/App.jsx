@@ -1,16 +1,19 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import AppShell from "./layout/AppShell";
 import { useAuth } from "./context/AuthContext";
+import CategoriesPage from "./pages/CategoriesPage";
 import DashboardPage from "./pages/DashboardPage";
+import DepartmentsPage from "./pages/DepartmentsPage";
 import IssueItemsPage from "./pages/IssueItemsPage";
 import ItemsPage from "./pages/ItemsPage";
 import LoginPage from "./pages/LoginPage";
-import MembersPage from "./pages/MembersPage";
+import RecipientsPage from "./pages/MembersPage";
 import PaymentsPage from "./pages/PaymentsPage";
 import PurchaseOrdersPage from "./pages/PurchaseOrdersPage";
-import SupplierItemsPage from "./pages/SupplierItemsPage";
+import SupplierCatalogPage from "./pages/SupplierItemsPage";
 import SuppliersPage from "./pages/SuppliersPage";
 import TransactionsPage from "./pages/TransactionsPage";
+import UnitsPage from "./pages/UnitsPage";
 
 function ProtectedRoute({ children }) {
   const { isAuthenticated } = useAuth();
@@ -23,14 +26,17 @@ function ProtectedLayout() {
       <AppShell>
         <Routes>
           <Route path="/" element={<DashboardPage />} />
-          <Route path="/members" element={<MembersPage />} />
+          <Route path="/recipients" element={<RecipientsPage />} />
+          <Route path="/departments" element={<DepartmentsPage />} />
+          <Route path="/categories" element={<CategoriesPage />} />
+          <Route path="/units" element={<UnitsPage />} />
           <Route path="/suppliers" element={<SuppliersPage />} />
           <Route path="/items" element={<ItemsPage />} />
-          <Route path="/supplier-items" element={<SupplierItemsPage />} />
+          <Route path="/supplier-catalog" element={<SupplierCatalogPage />} />
           <Route path="/purchase-orders" element={<PurchaseOrdersPage />} />
           <Route path="/payments" element={<PaymentsPage />} />
           <Route path="/transactions" element={<TransactionsPage />} />
-          <Route path="/issue-items" element={<IssueItemsPage />} />
+          <Route path="/stock-issues" element={<IssueItemsPage />} />
         </Routes>
       </AppShell>
     </ProtectedRoute>

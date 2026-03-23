@@ -57,7 +57,7 @@ export default function DashboardPage() {
     { label: "Add Item", to: "/items" },
     { label: "Add Supplier", to: "/suppliers" },
     { label: "Create Purchase Order", to: "/purchase-orders" },
-    { label: "Issue to Member", to: "/issue-items" }
+    { label: "Record Stock Issue", to: "/stock-issues" }
   ];
 
   return (
@@ -159,7 +159,7 @@ export default function DashboardPage() {
             emptyState={{
               title: "No transactions yet",
               description:
-                "Create a purchase order or issue an item to a member and the activity will appear here."
+                "Create a purchase order or record a stock issue and the activity will appear here."
             }}
           />
         </div>

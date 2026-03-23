@@ -35,10 +35,12 @@ router.get(
 
     const whereClause = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
     const rows = await query(
-      `SELECT st.*, i.name AS item_name, i.category AS item_category, m.name AS member_name
+      `SELECT st.*, i.name AS item_name, i.category AS item_category, r.name AS recipient_name,
+              u.full_name AS created_by_name
        FROM stock_transactions st
        JOIN items i ON i.id = st.item_id
-       LEFT JOIN members m ON m.id = st.member_id
+       LEFT JOIN recipients r ON r.id = st.recipient_id
+       LEFT JOIN users u ON u.id = st.created_by
        ${whereClause}
        ORDER BY st.transaction_date DESC, st.id DESC`,
       params

@@ -16,6 +16,7 @@ router.get(
   asyncHandler(async (_req, res) => {
     const rows = await query(
       `SELECT po.id, po.order_number, po.status, po.total_amount, po.order_date,
+              po.expected_delivery_date, po.approved_at, po.received_at,
               s.name AS supplier_name
        FROM purchase_orders po
        JOIN suppliers s ON s.id = po.supplier_id
@@ -30,17 +31,20 @@ router.get(
   [param("id").isInt(), validate],
   asyncHandler(async (req, res) => {
     const orderRows = await query(
-      `SELECT po.*, s.name AS supplier_name
+      `SELECT po.*, s.name AS supplier_name, cu.full_name AS created_by_name, au.full_name AS approved_by_name
        FROM purchase_orders po
        JOIN suppliers s ON s.id = po.supplier_id
+       LEFT JOIN users cu ON cu.id = po.created_by
+       LEFT JOIN users au ON au.id = po.approved_by
        WHERE po.id = ?`,
       [req.params.id]
     );
     const detailRows = await query(
-      `SELECT pod.*, i.name AS item_name
-       FROM purchase_order_details pod
-       JOIN items i ON i.id = pod.item_id
-       WHERE pod.purchase_order_id = ?`,
+      `SELECT pol.*, i.name AS item_name, i.category AS item_category, u.symbol AS unit_symbol
+       FROM purchase_order_lines pol
+       JOIN items i ON i.id = pol.item_id
+       LEFT JOIN units_of_measure u ON u.id = i.unit_id
+       WHERE pol.purchase_order_id = ?`,
       [req.params.id]
     );
     res.json({ ...orderRows[0], details: detailRows });
@@ -53,6 +57,7 @@ router.post(
   [
     body("supplier_id").isInt().withMessage("Supplier is required"),
     body("status").isIn(["Pending", "Approved", "Received"]).withMessage("Invalid status"),
+    body("expected_delivery_date").optional({ values: "falsy" }).isISO8601().withMessage("Expected delivery date must be valid"),
     body("items").isArray({ min: 1 }).withMessage("At least one item is required"),
     body("items.*.item_id").isInt().withMessage("Item is required"),
     body("items.*.quantity").isInt({ min: 1 }).withMessage("Quantity must be greater than zero"),
@@ -65,29 +70,50 @@ router.post(
     try {
       await connection.beginTransaction();
 
-      const { supplier_id, status, items, notes = "" } = req.body;
+      const { supplier_id, status, items, notes = "", expected_delivery_date = null } = req.body;
       const totalAmount = items.reduce(
         (sum, item) => sum + Number(item.quantity) * Number(item.unit_price),
         0
       );
       const orderNumber = `PO-${Date.now()}`;
+      const approvedAt = status === "Approved" || status === "Received" ? new Date() : null;
+      const receivedAt = status === "Received" ? new Date() : null;
+      const approvedBy = approvedAt ? req.user.id : null;
 
       const [orderResult] = await connection.execute(
-        `INSERT INTO purchase_orders (order_number, supplier_id, status, total_amount, notes)
-         VALUES (?, ?, ?, ?, ?)`,
-        [orderNumber, supplier_id, status, totalAmount, notes]
+        `INSERT INTO purchase_orders (
+           order_number, supplier_id, created_by, approved_by, status, total_amount, notes,
+           expected_delivery_date, approved_at, received_at
+         )
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          orderNumber,
+          supplier_id,
+          req.user.id,
+          approvedBy,
+          status,
+          totalAmount,
+          notes,
+          expected_delivery_date || null,
+          approvedAt,
+          receivedAt
+        ]
       );
 
       for (const item of items) {
+        const lineTotal = Number(item.quantity) * Number(item.unit_price);
         await connection.execute(
-          `INSERT INTO purchase_order_details (purchase_order_id, item_id, quantity, unit_price, line_total)
-           VALUES (?, ?, ?, ?, ?)`,
+          `INSERT INTO purchase_order_lines (
+             purchase_order_id, item_id, quantity, received_quantity, unit_price, line_total
+           )
+           VALUES (?, ?, ?, ?, ?, ?)`,
           [
             orderResult.insertId,
             item.item_id,
             item.quantity,
+            status === "Received" ? item.quantity : 0,
             item.unit_price,
-            Number(item.quantity) * Number(item.unit_price)
+            lineTotal
           ]
         );
 
@@ -96,10 +122,23 @@ router.post(
             "UPDATE items SET stock_quantity = stock_quantity + ? WHERE id = ?",
             [item.quantity, item.item_id]
           );
+          const [stockRows] = await connection.execute(
+            "SELECT stock_quantity FROM items WHERE id = ?",
+            [item.item_id]
+          );
           await connection.execute(
-            `INSERT INTO stock_transactions (item_id, transaction_type, quantity, reference_type, reference_id, notes)
-             VALUES (?, 'PURCHASE_IN', ?, 'purchase_order', ?, ?)`,
-            [item.item_id, item.quantity, orderResult.insertId, `Received via ${orderNumber}`]
+            `INSERT INTO stock_transactions (
+               item_id, created_by, transaction_type, quantity, balance_after, reference_type, reference_id, notes
+             )
+             VALUES (?, ?, 'STOCK_RECEIPT', ?, ?, 'purchase_order', ?, ?)`,
+            [
+              item.item_id,
+              req.user.id,
+              item.quantity,
+              Number(stockRows[0].stock_quantity),
+              orderResult.insertId,
+              `Received via ${orderNumber}`
+            ]
           );
         }
       }
@@ -145,7 +184,7 @@ router.patch(
 
       if (order.status !== "Received" && status === "Received") {
         const details = await query(
-          "SELECT item_id, quantity FROM purchase_order_details WHERE purchase_order_id = ?",
+          "SELECT item_id, quantity FROM purchase_order_lines WHERE purchase_order_id = ?",
           [id],
           connection
         );
@@ -155,18 +194,53 @@ router.patch(
             [detail.quantity, detail.item_id],
             connection
           );
+          const stockRows = await query(
+            "SELECT stock_quantity FROM items WHERE id = ?",
+            [detail.item_id],
+            connection
+          );
           await query(
-            `INSERT INTO stock_transactions (item_id, transaction_type, quantity, reference_type, reference_id, notes)
-             VALUES (?, 'PURCHASE_IN', ?, 'purchase_order', ?, ?)`,
-            [detail.item_id, detail.quantity, id, `Received via ${order.order_number}`],
+            `INSERT INTO stock_transactions (
+               item_id, created_by, transaction_type, quantity, balance_after, reference_type, reference_id, notes
+             )
+             VALUES (?, ?, 'STOCK_RECEIPT', ?, ?, 'purchase_order', ?, ?)`,
+            [
+              detail.item_id,
+              req.user.id,
+              detail.quantity,
+              Number(stockRows[0].stock_quantity),
+              id,
+              `Received via ${order.order_number}`
+            ],
+            connection
+          );
+          await query(
+            `UPDATE purchase_order_lines
+             SET received_quantity = quantity
+             WHERE purchase_order_id = ? AND item_id = ?`,
+            [id, detail.item_id],
             connection
           );
         }
       }
 
+      const updateFields = ["status = ?", "updated_at = CURRENT_TIMESTAMP"];
+      const updateParams = [status];
+
+      if ((order.status === "Pending") && (status === "Approved" || status === "Received")) {
+        updateFields.push("approved_by = ?", "approved_at = COALESCE(approved_at, CURRENT_TIMESTAMP)");
+        updateParams.push(req.user.id);
+      }
+
+      if (status === "Received") {
+        updateFields.push("received_at = COALESCE(received_at, CURRENT_TIMESTAMP)");
+      }
+
+      updateParams.push(id);
+
       await query(
-        "UPDATE purchase_orders SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
-        [status, id],
+        `UPDATE purchase_orders SET ${updateFields.join(", ")} WHERE id = ?`,
+        updateParams,
         connection
       );
 

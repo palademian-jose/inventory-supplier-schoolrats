@@ -15,7 +15,7 @@ router.post(
   "/",
   authorize("admin", "staff"),
   [
-    body("member_id").isInt().withMessage("Member is required"),
+    body("recipient_id").isInt().withMessage("Recipient is required"),
     body("item_id").isInt().withMessage("Item is required"),
     body("quantity").isInt({ min: 1 }).withMessage("Quantity must be greater than zero"),
     validate
@@ -26,7 +26,7 @@ router.post(
     try {
       await connection.beginTransaction();
 
-      const { member_id, item_id, quantity, notes = "" } = req.body;
+      const { recipient_id, item_id, quantity, notes = "" } = req.body;
       const itemRows = await query("SELECT * FROM items WHERE id = ? FOR UPDATE", [item_id], connection);
 
       if (!itemRows.length) {
@@ -45,15 +45,19 @@ router.post(
         connection
       );
 
+      const nextBalance = Number(item.stock_quantity) - Number(quantity);
+
       const result = await query(
-        `INSERT INTO stock_transactions (item_id, member_id, transaction_type, quantity, reference_type, notes)
-         VALUES (?, ?, 'ISSUE_TO_MEMBER', ?, 'member_issue', ?)`,
-        [item_id, member_id, quantity, notes],
+        `INSERT INTO stock_transactions (
+           item_id, recipient_id, created_by, transaction_type, quantity, balance_after, reference_type, notes
+         )
+         VALUES (?, ?, ?, 'STOCK_ISSUE', ?, ?, 'stock_issue', ?)`,
+        [item_id, recipient_id, req.user.id, quantity, nextBalance, notes],
         connection
       );
 
       await connection.commit();
-      res.status(201).json({ message: "Item issued successfully", transactionId: result.insertId });
+      res.status(201).json({ message: "Stock issued successfully", transactionId: result.insertId });
     } catch (error) {
       await connection.rollback();
       throw error;

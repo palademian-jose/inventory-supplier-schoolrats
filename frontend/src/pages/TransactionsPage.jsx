@@ -66,7 +66,7 @@ export default function TransactionsPage() {
             onChange={(event) => setFilters((prev) => ({ ...prev, type: event.target.value }))}
           >
             <option value="">All types</option>
-            {["PURCHASE_IN", "ISSUE_TO_MEMBER", "ADJUSTMENT"].map((type) => (
+            {["STOCK_RECEIPT", "STOCK_ISSUE", "ADJUSTMENT"].map((type) => (
               <option key={type} value={type}>
                 {type.replaceAll("_", " ")}
               </option>

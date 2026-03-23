@@ -5,8 +5,10 @@ const detailRows = (transaction) => [
   { label: "Transaction ID", value: transaction?.id },
   { label: "Item", value: transaction?.item_name },
   { label: "Category", value: transaction?.item_category || "Not specified" },
-  { label: "Member", value: transaction?.member_name || "Not linked" },
+  { label: "Recipient", value: transaction?.recipient_name || "Not linked" },
+  { label: "Recorded By", value: transaction?.created_by_name || "System" },
   { label: "Quantity", value: transaction?.quantity },
+  { label: "Balance After", value: transaction?.balance_after ?? "Not recorded" },
   { label: "Reference Type", value: transaction?.reference_type || "Not specified" },
   { label: "Reference ID", value: transaction?.reference_id || "Not specified" },
   {
