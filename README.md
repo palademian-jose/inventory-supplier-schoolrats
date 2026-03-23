@@ -70,9 +70,9 @@ The seeded database includes these accounts:
 - `staff / password123`
 - `member / password123`
 
-## Recommended Setup: Podman
+## Recommended Setup: Podman or Docker
 
-This is the fastest way to run the whole project.
+This is the fastest way to run the whole project. The npm stack commands prefer Podman and fall back to Docker Compose automatically.
 
 ### 1. Clone the project
 
@@ -116,13 +116,21 @@ Username: admin
 Password: password123
 ```
 
-## Podman Commands
+## Container Commands
 
 Start the stack:
 
 ```bash
 npm run up
 ```
+
+This tries, in order:
+
+- `podman-compose`
+- `podman compose`
+- `docker compose`
+
+The compose file is shared across both runtimes.
 
 Stop the stack:
 
@@ -155,11 +163,11 @@ Important:
 
 ## How Database Initialization Works
 
-When the MySQL container starts for the first time, Podman mounts [schema.sql](/home/deimos/Projects/inventory-supplier-system/database/schema.sql) into MySQL's init directory:
+The MySQL service is built from [database/Dockerfile](/home/deimos/Projects/inventory-supplier-system/database/Dockerfile), which copies [schema.sql](/home/deimos/Projects/inventory-supplier-system/database/schema.sql) into MySQL's init directory:
 
-- `./database/schema.sql -> /docker-entrypoint-initdb.d/01-schema.sql`
+- `/docker-entrypoint-initdb.d/01-schema.sql`
 
-That file creates the tables and inserts the initial sample data.
+That script creates the tables and inserts the initial sample data. This avoids Podman SELinux bind-mount issues while staying portable across Podman and Docker.
 
 If the MySQL volume already exists, MySQL will not re-import the schema automatically. Use:
 
@@ -362,4 +370,3 @@ npm start
 - Express
 - MySQL
 - Podman
-
