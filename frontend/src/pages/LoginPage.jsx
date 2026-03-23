@@ -32,22 +32,17 @@ export default function LoginPage() {
         <section className="hidden rounded-[2rem] border border-white/80 bg-slate-900 px-8 py-10 text-white shadow-2xl xl:block">
           <p className="text-xs font-semibold uppercase tracking-[0.34em] text-sky-200">SchoolRats</p>
           <h1 className="mt-6 max-w-xl text-5xl font-semibold tracking-tight">
-            Inventory and supplier management without clutter.
+            Inventory and supplier management.
           </h1>
-          <p className="mt-6 max-w-xl text-sm leading-7 text-slate-300">
-            This academic prototype focuses on the operational basics your advisor expects:
-            stock visibility, supplier relationships, purchasing flow, payments, and issue
-            tracking.
-          </p>
 
-          <div className="mt-10 grid gap-4 md:grid-cols-2">
-            <div className="rounded-3xl border border-white/10 bg-white/5 p-5">
-              <p className="text-sm text-slate-300">Core modules</p>
-              <p className="mt-2 text-2xl font-semibold">10</p>
-            </div>
+          <div className="mt-10 grid gap-4">
             <div className="rounded-3xl border border-white/10 bg-white/5 p-5">
               <p className="text-sm text-slate-300">Architecture</p>
               <p className="mt-2 text-2xl font-semibold">REST + MySQL</p>
+            </div>
+            <div className="rounded-3xl border border-white/10 bg-white/5 p-5">
+              <p className="text-sm text-slate-300">Subject Code</p>
+              <p className="mt-2 text-2xl font-semibold">CSC481</p>
             </div>
           </div>
         </section>
@@ -60,9 +55,6 @@ export default function LoginPage() {
             <h2 className="mt-3 text-3xl font-semibold tracking-tight text-slate-900">
               Sign in to the dashboard
             </h2>
-            <p className="mt-2 text-sm leading-6 text-slate-500">
-              Use the seeded credentials below to access the prototype and show the full flow.
-            </p>
           </div>
 
           <form className="space-y-4" onSubmit={handleSubmit}>
