@@ -1,0 +1,16 @@
+{
+  "name": "inventory-supplier-system",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "stack:up": "sh -c 'podman-compose -f podman-compose.yml up --build -d || podman compose -f podman-compose.yml up --build -d'",
+    "stack:down": "sh -c 'podman-compose -f podman-compose.yml down || podman compose -f podman-compose.yml down'",
+    "stack:logs": "sh -c 'podman-compose -f podman-compose.yml logs -f || podman compose -f podman-compose.yml logs -f'",
+    "stack:restart": "npm run stack:down && npm run stack:up",
+    "stack:reset-data": "podman volume rm -f inventory-supplier-system_mysql_data",
+    "reset": "npm run stack:down && npm run stack:reset-data && npm run stack:up",
+    "up": "npm run stack:up",
+    "down": "npm run stack:down",
+    "logs": "npm run stack:logs"
+  }
+}
