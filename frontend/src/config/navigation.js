@@ -1,7 +1,6 @@
 import {
   Boxes,
   FolderTree,
-  CreditCard,
   LayoutDashboard,
   PackagePlus,
   ShoppingCart,
@@ -15,7 +14,7 @@ import {
 
 export const navigationItems = [
   { label: "Dashboard", path: "/", icon: LayoutDashboard },
-  { label: "Recipients", path: "/recipients", icon: Users },
+  { label: "Users", path: "/users", icon: Users },
   { label: "Departments", path: "/departments", icon: Building2 },
   { label: "Categories", path: "/categories", icon: FolderTree },
   { label: "Units", path: "/units", icon: Ruler },
@@ -23,7 +22,6 @@ export const navigationItems = [
   { label: "Items", path: "/items", icon: Boxes },
   { label: "Supplier Catalog", path: "/supplier-catalog", icon: PackagePlus },
   { label: "Purchase Orders", path: "/purchase-orders", icon: ShoppingCart },
-  { label: "Payments", path: "/payments", icon: CreditCard },
   { label: "Transactions", path: "/transactions", icon: ReceiptText },
   { label: "Stock Issues", path: "/stock-issues", icon: UserRound }
 ];

@@ -11,6 +11,33 @@ const router = express.Router();
 
 router.use(authenticate);
 
+const ensureSupplierCatalogPairsExist = async (connection, supplierId, itemIds) => {
+  const uniqueItemIds = [...new Set(itemIds.map((itemId) => Number(itemId)))];
+
+  if (!uniqueItemIds.length) {
+    return;
+  }
+
+  const placeholders = uniqueItemIds.map(() => "?").join(", ");
+  const catalogRows = await query(
+    `SELECT item_id
+     FROM supplier_catalog_items
+     WHERE supplier_id = ? AND item_id IN (${placeholders})`,
+    [supplierId, ...uniqueItemIds],
+    connection
+  );
+
+  const availableItemIds = new Set(catalogRows.map((row) => Number(row.item_id)));
+  const missingItemIds = uniqueItemIds.filter((itemId) => !availableItemIds.has(itemId));
+
+  if (missingItemIds.length) {
+    throw httpError(
+      400,
+      `Supplier ${supplierId} is not linked to item(s): ${missingItemIds.join(", ")}`
+    );
+  }
+};
+
 router.get(
   "/",
   asyncHandler(async (_req, res) => {
@@ -40,9 +67,10 @@ router.get(
       [req.params.id]
     );
     const detailRows = await query(
-      `SELECT pol.*, i.name AS item_name, i.category AS item_category, u.symbol AS unit_symbol
+      `SELECT pol.*, i.name AS item_name, c.name AS item_category, u.symbol AS unit_symbol
        FROM purchase_order_lines pol
        JOIN items i ON i.id = pol.item_id
+       LEFT JOIN categories c ON c.id = i.category_id
        LEFT JOIN units_of_measure u ON u.id = i.unit_id
        WHERE pol.purchase_order_id = ?`,
       [req.params.id]
@@ -71,6 +99,11 @@ router.post(
       await connection.beginTransaction();
 
       const { supplier_id, status, items, notes = "", expected_delivery_date = null } = req.body;
+      await ensureSupplierCatalogPairsExist(
+        connection,
+        supplier_id,
+        items.map((item) => item.item_id)
+      );
       const totalAmount = items.reduce(
         (sum, item) => sum + Number(item.quantity) * Number(item.unit_price),
         0
@@ -122,20 +155,24 @@ router.post(
             "UPDATE items SET stock_quantity = stock_quantity + ? WHERE id = ?",
             [item.quantity, item.item_id]
           );
-          const [stockRows] = await connection.execute(
-            "SELECT stock_quantity FROM items WHERE id = ?",
+          const [itemRows] = await connection.execute(
+            "SELECT unit_id, stock_quantity FROM items WHERE id = ?",
             [item.item_id]
           );
+          const itemRecord = itemRows[0];
           await connection.execute(
             `INSERT INTO stock_transactions (
-               item_id, created_by, transaction_type, quantity, balance_after, reference_type, reference_id, notes
+               item_id, supplier_id, unit_id, created_by, transaction_type, quantity, balance_after,
+               reference_type, reference_id, notes
              )
-             VALUES (?, ?, 'STOCK_RECEIPT', ?, ?, 'purchase_order', ?, ?)`,
+             VALUES (?, ?, ?, ?, 'STOCK_RECEIPT', ?, ?, 'purchase_order', ?, ?)`,
             [
               item.item_id,
+              supplier_id,
+              itemRecord.unit_id,
               req.user.id,
               item.quantity,
-              Number(stockRows[0].stock_quantity),
+              Number(itemRecord.stock_quantity),
               orderResult.insertId,
               `Received via ${orderNumber}`
             ]
@@ -188,27 +225,36 @@ router.patch(
           [id],
           connection
         );
+        await ensureSupplierCatalogPairsExist(
+          connection,
+          order.supplier_id,
+          details.map((detail) => detail.item_id)
+        );
         for (const detail of details) {
           await query(
             "UPDATE items SET stock_quantity = stock_quantity + ? WHERE id = ?",
             [detail.quantity, detail.item_id],
             connection
           );
-          const stockRows = await query(
-            "SELECT stock_quantity FROM items WHERE id = ?",
+          const itemRows = await query(
+            "SELECT unit_id, stock_quantity FROM items WHERE id = ?",
             [detail.item_id],
             connection
           );
+          const itemRecord = itemRows[0];
           await query(
             `INSERT INTO stock_transactions (
-               item_id, created_by, transaction_type, quantity, balance_after, reference_type, reference_id, notes
+               item_id, supplier_id, unit_id, created_by, transaction_type, quantity, balance_after,
+               reference_type, reference_id, notes
              )
-             VALUES (?, ?, 'STOCK_RECEIPT', ?, ?, 'purchase_order', ?, ?)`,
+             VALUES (?, ?, ?, ?, 'STOCK_RECEIPT', ?, ?, 'purchase_order', ?, ?)`,
             [
               detail.item_id,
+              order.supplier_id,
+              itemRecord.unit_id,
               req.user.id,
               detail.quantity,
-              Number(stockRows[0].stock_quantity),
+              Number(itemRecord.stock_quantity),
               id,
               `Received via ${order.order_number}`
             ],

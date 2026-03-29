@@ -4,7 +4,7 @@ export default function DepartmentsPage() {
   return (
     <ResourcePage
       title="Departments"
-      subtitle="Maintain departments for recipient grouping and reporting."
+      subtitle="Maintain departments for user grouping and reporting."
       endpoint="/master-data/departments"
       searchPlaceholder="Search departments..."
       columns={[

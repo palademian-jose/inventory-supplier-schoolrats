@@ -50,7 +50,7 @@ export default function ItemsPage() {
       searchPlaceholder="Search items..."
       columns={[
         { key: "name", label: "Item" },
-        { key: "category_name", label: "Category", render: (row) => row.category_name || row.category },
+        { key: "category_name", label: "Category", render: (row) => row.category_name || "-" },
         {
           key: "unit_symbol",
           label: "Unit",
@@ -87,7 +87,7 @@ export default function ItemsPage() {
           type: "select",
           options: unitOptions
         },
-        { name: "price", label: "Price", type: "number", required: true, min: 0 },
+        { name: "price", label: "Price", type: "number", required: true, min: 0, step: "0.01" },
         {
           name: "stock_quantity",
           label: "Stock Quantity",
@@ -112,7 +112,6 @@ export default function ItemsPage() {
 
         return {
           ...form,
-          category: selectedCategory?.name || "",
           category_id: form.category_id ? Number(form.category_id) : null,
           unit_id: form.unit_id ? Number(form.unit_id) : null,
           price: Number(form.price),

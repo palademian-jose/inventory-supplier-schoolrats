@@ -4,6 +4,7 @@ import asyncHandler from "../utils/asyncHandler.js";
 import { authenticate, authorize } from "../middleware/auth.js";
 import { validate } from "../middleware/validate.js";
 import { query } from "../utils/query.js";
+import { httpError } from "../utils/httpError.js";
 
 const router = express.Router();
 
@@ -67,7 +68,14 @@ router.delete(
   authorize("admin"),
   [param("id").isInt(), validate],
   asyncHandler(async (req, res) => {
-    await query("DELETE FROM supplier_catalog_items WHERE id = ?", [req.params.id]);
+    try {
+      await query("DELETE FROM supplier_catalog_items WHERE id = ?", [req.params.id]);
+    } catch (error) {
+      if (error.code === "ER_ROW_IS_REFERENCED_2") {
+        throw httpError(409, "Supplier catalog entry is referenced by stock transactions");
+      }
+      throw error;
+    }
     res.json({ message: "Supplier catalog entry deleted successfully" });
   })
 );

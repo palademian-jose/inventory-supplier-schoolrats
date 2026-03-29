@@ -48,8 +48,12 @@ export default function ResourcePage({
 
     fields.forEach((field) => {
       const value = form[field.name];
+      const isRequired =
+        field.required ||
+        (!selectedRow && field.requiredOnCreate) ||
+        (selectedRow && field.requiredOnEdit);
 
-      if (field.required && String(value ?? "").trim() === "") {
+      if (isRequired && String(value ?? "").trim() === "") {
         nextErrors[field.name] = `${field.label} is required`;
         return;
       }
@@ -266,6 +270,7 @@ export default function ResourcePage({
                   className={`input ${errors[field.name] ? "input-error" : ""}`}
                   type={field.type || "text"}
                   min={field.min}
+                  step={field.step}
                   value={form[field.name]}
                   onChange={(event) =>
                     setForm((prev) => ({ ...prev, [field.name]: event.target.value }))

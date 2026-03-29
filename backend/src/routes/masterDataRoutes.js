@@ -4,6 +4,7 @@ import asyncHandler from "../utils/asyncHandler.js";
 import { authenticate, authorize } from "../middleware/auth.js";
 import { validate } from "../middleware/validate.js";
 import { query } from "../utils/query.js";
+import { httpError } from "../utils/httpError.js";
 
 const router = express.Router();
 
@@ -61,7 +62,14 @@ const createMasterResourceRoutes = ({
     authorize("admin"),
     [param("id").isInt(), validate],
     asyncHandler(async (req, res) => {
-      await query(`DELETE FROM ${table} WHERE id = ?`, [req.params.id]);
+      try {
+        await query(`DELETE FROM ${table} WHERE id = ?`, [req.params.id]);
+      } catch (error) {
+        if (error.code === "ER_ROW_IS_REFERENCED_2") {
+          throw httpError(409, "Record cannot be deleted because it is referenced by related records");
+        }
+        throw error;
+      }
       res.json({ message: "Record deleted successfully" });
     })
   );

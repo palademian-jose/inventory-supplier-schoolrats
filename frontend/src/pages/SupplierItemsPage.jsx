@@ -191,6 +191,7 @@ export default function SupplierCatalogPage() {
               className={`input ${errors.supplier_price ? "input-error" : ""}`}
               type="number"
               min="0"
+              step="0.01"
               value={form.supplier_price}
               onChange={(event) => {
                 setForm((prev) => ({ ...prev, supplier_price: event.target.value }));

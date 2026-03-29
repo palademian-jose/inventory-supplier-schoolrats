@@ -7,8 +7,7 @@ import DepartmentsPage from "./pages/DepartmentsPage";
 import IssueItemsPage from "./pages/IssueItemsPage";
 import ItemsPage from "./pages/ItemsPage";
 import LoginPage from "./pages/LoginPage";
-import RecipientsPage from "./pages/MembersPage";
-import PaymentsPage from "./pages/PaymentsPage";
+import UsersPage from "./pages/MembersPage";
 import PurchaseOrdersPage from "./pages/PurchaseOrdersPage";
 import SupplierCatalogPage from "./pages/SupplierItemsPage";
 import SuppliersPage from "./pages/SuppliersPage";
@@ -26,7 +25,7 @@ function ProtectedLayout() {
       <AppShell>
         <Routes>
           <Route path="/" element={<DashboardPage />} />
-          <Route path="/recipients" element={<RecipientsPage />} />
+          <Route path="/users" element={<UsersPage />} />
           <Route path="/departments" element={<DepartmentsPage />} />
           <Route path="/categories" element={<CategoriesPage />} />
           <Route path="/units" element={<UnitsPage />} />
@@ -34,7 +33,6 @@ function ProtectedLayout() {
           <Route path="/items" element={<ItemsPage />} />
           <Route path="/supplier-catalog" element={<SupplierCatalogPage />} />
           <Route path="/purchase-orders" element={<PurchaseOrdersPage />} />
-          <Route path="/payments" element={<PaymentsPage />} />
           <Route path="/transactions" element={<TransactionsPage />} />
           <Route path="/stock-issues" element={<IssueItemsPage />} />
         </Routes>

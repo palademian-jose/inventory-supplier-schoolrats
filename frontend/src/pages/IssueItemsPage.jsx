@@ -3,11 +3,11 @@ import toast from "react-hot-toast";
 import { createResource, fetchResource } from "../api/resources";
 
 export default function IssueItemsPage() {
-  const [recipients, setRecipients] = useState([]);
+  const [users, setUsers] = useState([]);
   const [items, setItems] = useState([]);
   const [errors, setErrors] = useState({});
   const [form, setForm] = useState({
-    recipient_id: "",
+    user_id: "",
     item_id: "",
     quantity: 1,
     notes: ""
@@ -16,11 +16,11 @@ export default function IssueItemsPage() {
   useEffect(() => {
     const loadOptions = async () => {
       try {
-        const [recipientRows, itemRows] = await Promise.all([
-          fetchResource("/recipients", { page: 1, limit: 100 }),
+        const [userRows, itemRows] = await Promise.all([
+          fetchResource("/users", { page: 1, limit: 100 }),
           fetchResource("/items", { page: 1, limit: 100 })
         ]);
-        setRecipients(recipientRows.data);
+        setUsers(userRows.data);
         setItems(itemRows.data);
       } catch (error) {
         toast.error(error.response?.data?.message || "Failed to load stock issue form");
@@ -32,7 +32,7 @@ export default function IssueItemsPage() {
 
   const validateForm = () => {
     const nextErrors = {};
-    if (!form.recipient_id) nextErrors.recipient_id = "Recipient is required";
+    if (!form.user_id) nextErrors.user_id = "User is required";
     if (!form.item_id) nextErrors.item_id = "Item is required";
     if (!form.quantity || Number(form.quantity) <= 0) {
       nextErrors.quantity = "Quantity must be greater than zero";
@@ -50,14 +50,14 @@ export default function IssueItemsPage() {
 
     try {
       await createResource("/stock-issues", {
-        recipient_id: Number(form.recipient_id),
+        user_id: Number(form.user_id),
         item_id: Number(form.item_id),
         quantity: Number(form.quantity),
         notes: form.notes
       });
       toast.success("Stock issued successfully");
       setErrors({});
-      setForm({ recipient_id: "", item_id: "", quantity: 1, notes: "" });
+      setForm({ user_id: "", item_id: "", quantity: 1, notes: "" });
     } catch (error) {
       toast.error(error.response?.data?.message || "Unable to issue stock");
     }
@@ -73,28 +73,28 @@ export default function IssueItemsPage() {
           Record a Stock Issue
         </h3>
         <p className="mt-2 text-sm leading-6 text-slate-500">
-          Select the recipient, choose an item, and record the quantity issued.
+          Select the user, choose an item, and record the quantity issued.
         </p>
 
         <form className="mt-6 grid gap-4" onSubmit={handleSubmit}>
           <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">Recipient</label>
+            <label className="mb-2 block text-sm font-medium text-slate-700">User</label>
             <select
-              className={`select ${errors.recipient_id ? "input-error" : ""}`}
-              value={form.recipient_id}
+              className={`select ${errors.user_id ? "input-error" : ""}`}
+              value={form.user_id}
               onChange={(event) => {
-                setForm((prev) => ({ ...prev, recipient_id: event.target.value }));
-                setErrors((prev) => ({ ...prev, recipient_id: undefined }));
+                setForm((prev) => ({ ...prev, user_id: event.target.value }));
+                setErrors((prev) => ({ ...prev, user_id: undefined }));
               }}
             >
-              <option value="">Select recipient</option>
-              {recipients.map((recipient) => (
-                <option key={recipient.id} value={recipient.id}>
-                  {recipient.name}
+              <option value="">Select user</option>
+              {users.map((user) => (
+                <option key={user.id} value={user.id}>
+                  {user.full_name}
                 </option>
               ))}
             </select>
-            {errors.recipient_id ? <p className="field-error">{errors.recipient_id}</p> : null}
+            {errors.user_id ? <p className="field-error">{errors.user_id}</p> : null}
           </div>
 
           <div>

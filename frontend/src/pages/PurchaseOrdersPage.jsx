@@ -10,7 +10,7 @@ const emptyLine = { item_id: "", quantity: 1, unit_price: 0 };
 export default function PurchaseOrdersPage() {
   const [orders, setOrders] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
-  const [items, setItems] = useState([]);
+  const [supplierItems, setSupplierItems] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [errors, setErrors] = useState({});
@@ -33,14 +33,12 @@ export default function PurchaseOrdersPage() {
 
   const loadData = async () => {
     try {
-      const [orderRows, supplierRows, itemRows] = await Promise.all([
+      const [orderRows, supplierRows] = await Promise.all([
         fetchResource("/purchase-orders"),
-        fetchResource("/suppliers", { page: 1, limit: 100 }),
-        fetchResource("/items", { page: 1, limit: 100 })
+        fetchResource("/suppliers", { page: 1, limit: 100 })
       ]);
       setOrders(orderRows);
       setSuppliers(supplierRows.data);
-      setItems(itemRows.data);
     } catch (error) {
       toast.error(error.response?.data?.message || "Failed to load purchase orders");
     }
@@ -50,11 +48,60 @@ export default function PurchaseOrdersPage() {
     loadData();
   }, []);
 
+  useEffect(() => {
+    const loadSupplierItems = async () => {
+      if (!form.supplier_id) {
+        setSupplierItems([]);
+        return;
+      }
+
+      try {
+        const rows = await fetchResource(`/suppliers/${form.supplier_id}/items`);
+        setSupplierItems(rows);
+      } catch (error) {
+        setSupplierItems([]);
+        toast.error(error.response?.data?.message || "Failed to load supplier catalog items");
+      }
+    };
+
+    loadSupplierItems();
+  }, [form.supplier_id]);
+
   const updateLine = (index, key, value) => {
     setForm((prev) => ({
       ...prev,
       items: prev.items.map((line, lineIndex) =>
         lineIndex === index ? { ...line, [key]: value } : line
+      )
+    }));
+  };
+
+  const setSupplier = (supplierId) => {
+    setForm((prev) => ({
+      ...prev,
+      supplier_id: supplierId,
+      items: [{ ...emptyLine }]
+    }));
+  };
+
+  const handleItemChange = (index, itemId) => {
+    const selectedSupplierItem = supplierItems.find(
+      (supplierItem) => String(supplierItem.item_id) === String(itemId)
+    );
+
+    setForm((prev) => ({
+      ...prev,
+      items: prev.items.map((line, lineIndex) =>
+        lineIndex === index
+          ? {
+              ...line,
+              item_id: itemId,
+              unit_price:
+                itemId && selectedSupplierItem
+                  ? Number(selectedSupplierItem.supplier_price)
+                  : emptyLine.unit_price
+            }
+          : line
       )
     }));
   };
@@ -232,7 +279,7 @@ export default function PurchaseOrdersPage() {
                 className={`select ${errors.supplier_id ? "input-error" : ""}`}
                 value={form.supplier_id}
                 onChange={(event) => {
-                  setForm((prev) => ({ ...prev, supplier_id: event.target.value }));
+                  setSupplier(event.target.value);
                   setErrors((prev) => ({ ...prev, supplier_id: undefined }));
                 }}
               >
@@ -279,7 +326,7 @@ export default function PurchaseOrdersPage() {
               <div>
                 <p className="text-sm font-semibold text-slate-900">Order Items</p>
                 <p className="text-sm text-slate-500">
-                  Each row represents one item being purchased.
+                  Each row represents one catalog item offered by the selected supplier.
                 </p>
               </div>
             </div>
@@ -310,15 +357,22 @@ export default function PurchaseOrdersPage() {
                     <select
                       className={`select ${errors[`item_id_${index}`] ? "input-error" : ""}`}
                       value={line.item_id}
+                      disabled={!form.supplier_id || supplierItems.length === 0}
                       onChange={(event) => {
-                        updateLine(index, "item_id", event.target.value);
+                        handleItemChange(index, event.target.value);
                         setErrors((prev) => ({ ...prev, [`item_id_${index}`]: undefined }));
                       }}
                     >
-                      <option value="">Select item</option>
-                      {items.map((item) => (
-                        <option key={item.id} value={item.id}>
-                          {item.name}
+                      <option value="">
+                        {!form.supplier_id
+                          ? "Select supplier first"
+                          : supplierItems.length === 0
+                            ? "No supplier catalog items"
+                            : "Select item"}
+                      </option>
+                      {supplierItems.map((item) => (
+                        <option key={item.item_id} value={item.item_id}>
+                          {item.item_name}
                         </option>
                       ))}
                     </select>
@@ -355,6 +409,7 @@ export default function PurchaseOrdersPage() {
                       className={`input ${errors[`unit_price_${index}`] ? "input-error" : ""}`}
                       type="number"
                       min="0"
+                      step="0.01"
                       placeholder="Enter unit price"
                       value={line.unit_price}
                       onChange={(event) => {
@@ -372,6 +427,7 @@ export default function PurchaseOrdersPage() {
             <button
               type="button"
               className="btn-secondary"
+              disabled={!form.supplier_id || supplierItems.length === 0}
               onClick={() =>
                 setForm((prev) => ({ ...prev, items: [...prev.items, { ...emptyLine }] }))
               }

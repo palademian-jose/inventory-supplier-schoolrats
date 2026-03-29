@@ -3,7 +3,7 @@ import toast from "react-hot-toast";
 import ResourcePage from "./ResourcePage";
 import { fetchResource } from "../api/resources";
 
-export default function RecipientsPage() {
+export default function UsersPage() {
   const [departments, setDepartments] = useState([]);
 
   useEffect(() => {
@@ -21,20 +21,23 @@ export default function RecipientsPage() {
 
   return (
     <ResourcePage
-      title="Recipients"
-      subtitle="Manage the people or departments that receive issued stock."
-      endpoint="/recipients"
-      searchPlaceholder="Search recipients..."
+      title="Users"
+      subtitle="Manage system users, departments, roles, and issue recipients."
+      endpoint="/users"
+      searchPlaceholder="Search users..."
       columns={[
-        { key: "name", label: "Name" },
+        { key: "full_name", label: "Name" },
+        { key: "username", label: "Username" },
         { key: "department_name", label: "Department", render: (row) => row.department_name || "-" },
-        { key: "recipient_type", label: "Type", render: (row) => row.recipient_type || "-" },
+        { key: "role", label: "Role", render: (row) => row.role || "-" },
         { key: "phone", label: "Phone" },
         { key: "email", label: "Email" },
         { key: "status", label: "Status", type: "status" }
       ]}
       fields={[
-        { name: "name", label: "Name", required: true },
+        { name: "full_name", label: "Name", required: true },
+        { name: "username", label: "Username", required: true },
+        { name: "password", label: "Password", requiredOnCreate: true },
         {
           name: "department_id",
           label: "Department",
@@ -45,19 +48,18 @@ export default function RecipientsPage() {
           }))
         },
         {
-          name: "recipient_type",
-          label: "Recipient Type",
+          name: "role",
+          label: "Role",
           type: "select",
           required: true,
-          defaultValue: "person",
+          defaultValue: "staff",
           options: [
-            { value: "person", label: "Person" },
-            { value: "department", label: "Department" },
-            { value: "organization", label: "Organization" }
+            { value: "staff", label: "Staff" },
+            { value: "admin", label: "Admin" }
           ]
         },
         { name: "phone", label: "Phone", required: true },
-        { name: "email", label: "Email", type: "email", required: true },
+        { name: "email", label: "Email", type: "email" },
         { name: "address", label: "Address", fullWidth: true, type: "textarea" },
         {
           name: "status",
@@ -72,6 +74,7 @@ export default function RecipientsPage() {
       ]}
       transformForm={(form) => ({
         ...form,
+        password: form.password || undefined,
         department_id: form.department_id ? Number(form.department_id) : null
       })}
     />

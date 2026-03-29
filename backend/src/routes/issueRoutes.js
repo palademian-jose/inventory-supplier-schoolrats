@@ -15,7 +15,7 @@ router.post(
   "/",
   authorize("admin", "staff"),
   [
-    body("recipient_id").isInt().withMessage("Recipient is required"),
+    body("user_id").isInt().withMessage("User is required"),
     body("item_id").isInt().withMessage("Item is required"),
     body("quantity").isInt({ min: 1 }).withMessage("Quantity must be greater than zero"),
     validate
@@ -26,7 +26,7 @@ router.post(
     try {
       await connection.beginTransaction();
 
-      const { recipient_id, item_id, quantity, notes = "" } = req.body;
+      const { user_id, item_id, quantity, notes = "" } = req.body;
       const itemRows = await query("SELECT * FROM items WHERE id = ? FOR UPDATE", [item_id], connection);
 
       if (!itemRows.length) {
@@ -49,10 +49,11 @@ router.post(
 
       const result = await query(
         `INSERT INTO stock_transactions (
-           item_id, recipient_id, created_by, transaction_type, quantity, balance_after, reference_type, notes
+           item_id, unit_id, user_id, created_by, transaction_type, quantity, balance_after,
+           reference_type, notes
          )
-         VALUES (?, ?, ?, 'STOCK_ISSUE', ?, ?, 'stock_issue', ?)`,
-        [item_id, recipient_id, req.user.id, quantity, nextBalance, notes],
+         VALUES (?, ?, ?, ?, 'STOCK_ISSUE', ?, ?, 'stock_issue', ?)`,
+        [item_id, item.unit_id, user_id, req.user.id, quantity, nextBalance, notes],
         connection
       );
 
