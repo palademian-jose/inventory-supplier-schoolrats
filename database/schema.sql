@@ -151,10 +151,10 @@ INSERT INTO departments (code, name) VALUES
 ('IT', 'Information Technology');
 
 INSERT INTO users (username, password_hash, full_name, email, phone, address, department_id, role) VALUES
-('admin', '$2a$10$GP7MFImzhcrZgI97OAMxqecErjP2F1eiXi7ln//7mSbxs7bLOr3Ui', 'System Administrator', 'admin@example.com', '0900000001', '12 Admin Road', 1, 'admin'),
-('staff', '$2a$10$GP7MFImzhcrZgI97OAMxqecErjP2F1eiXi7ln//7mSbxs7bLOr3Ui', 'Inventory Staff', 'staff@example.com', '0900000002', '88 Store Lane', 1, 'staff'),
-('alice', '$2a$10$GP7MFImzhcrZgI97OAMxqecErjP2F1eiXi7ln//7mSbxs7bLOr3Ui', 'Alice Tan', 'alice@example.com', '0901111111', '12 Garden Street', 2, 'staff'),
-('ben', '$2a$10$GP7MFImzhcrZgI97OAMxqecErjP2F1eiXi7ln//7mSbxs7bLOr3Ui', 'Ben Wong', 'ben@example.com', '0902222222', '78 River Road', 3, 'staff');
+('admin', '$2a$10$z1a3CYqg2fpoZxiYpfQEpOImboLrK5nLeJIVuNoJyLiwl965.gMVS', 'System Administrator', 'admin@example.com', '0900000001', '12 Admin Road', 1, 'admin'),
+('staff', '$2a$10$z1a3CYqg2fpoZxiYpfQEpOImboLrK5nLeJIVuNoJyLiwl965.gMVS', 'Inventory Staff', 'staff@example.com', '0900000002', '88 Store Lane', 1, 'staff'),
+('alice', '$2a$10$z1a3CYqg2fpoZxiYpfQEpOImboLrK5nLeJIVuNoJyLiwl965.gMVS', 'Alice Tan', 'alice@example.com', '0901111111', '12 Garden Street', 2, 'staff'),
+('ben', '$2a$10$z1a3CYqg2fpoZxiYpfQEpOImboLrK5nLeJIVuNoJyLiwl965.gMVS', 'Ben Wong', 'ben@example.com', '0902222222', '78 River Road', 3, 'staff');
 
 INSERT INTO categories (code, name) VALUES
 ('OFF', 'Office Supplies'),
