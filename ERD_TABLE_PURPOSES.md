@@ -63,6 +63,7 @@ Why it exists:
 Purpose:
 - Connects suppliers and items.
 - Stores supplier-specific information for an item such as supplier SKU, preferred status, price, and lead time.
+- Uses the supplier-item pair itself as the table key.
 
 Why it exists:
 - A supplier can provide many items, and an item can potentially come from many suppliers.
@@ -93,7 +94,7 @@ Why it exists:
 Purpose:
 - Records all stock movement history.
 - Tracks incoming stock, issued stock, and adjustments.
-- Links each movement to an item and optionally to a supplier, unit, user, and reference record.
+- Links each movement to an item and optionally to a supplier catalog pair, unit, user, and reference record.
 
 Why it exists:
 - This is the audit trail of inventory movement.

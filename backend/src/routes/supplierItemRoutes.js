@@ -14,13 +14,13 @@ router.get(
   "/",
   asyncHandler(async (_req, res) => {
     const rows = await query(
-      `SELECT si.id, si.supplier_id, si.item_id, si.supplier_sku, si.is_preferred,
+      `SELECT si.supplier_id, si.item_id, si.supplier_sku, si.is_preferred,
               si.supplier_price, si.lead_time_days,
               s.name AS supplier_name, i.name AS item_name
        FROM supplier_catalog_items si
        JOIN suppliers s ON s.id = si.supplier_id
        JOIN items i ON i.id = si.item_id
-       ORDER BY si.id DESC`
+       ORDER BY si.created_at DESC, si.supplier_id DESC, si.item_id DESC`
     );
     res.json(rows);
   })
@@ -59,17 +59,23 @@ router.post(
          lead_time_days = VALUES(lead_time_days)`,
       [supplier_id, item_id, supplier_sku || null, is_preferred, supplier_price, lead_time_days]
     );
-    res.status(201).json({ message: "Supplier catalog entry saved", id: result.insertId || null });
+    res.status(201).json({ message: "Supplier catalog entry saved", supplier_id, item_id });
   })
 );
 
 router.delete(
-  "/:id",
+  "/:supplier_id/:item_id",
   authorize("admin"),
-  [param("id").isInt(), validate],
+  [param("supplier_id").isInt(), param("item_id").isInt(), validate],
   asyncHandler(async (req, res) => {
     try {
-      await query("DELETE FROM supplier_catalog_items WHERE id = ?", [req.params.id]);
+      const result = await query(
+        "DELETE FROM supplier_catalog_items WHERE supplier_id = ? AND item_id = ?",
+        [req.params.supplier_id, req.params.item_id]
+      );
+      if (!result.affectedRows) {
+        throw httpError(404, "Supplier catalog entry not found");
+      }
     } catch (error) {
       if (error.code === "ER_ROW_IS_REFERENCED_2") {
         throw httpError(409, "Supplier catalog entry is referenced by stock transactions");

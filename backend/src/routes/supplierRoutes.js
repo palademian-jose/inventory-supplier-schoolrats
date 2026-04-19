@@ -31,7 +31,7 @@ router.get(
   [param("id").isInt(), validate],
   asyncHandler(async (req, res) => {
     const rows = await query(
-      `SELECT si.id, si.supplier_price, si.lead_time_days, si.supplier_sku, si.is_preferred,
+      `SELECT si.supplier_id, si.item_id, si.supplier_price, si.lead_time_days, si.supplier_sku, si.is_preferred,
               i.id AS item_id, i.name AS item_name
        FROM supplier_catalog_items si
        JOIN items i ON i.id = si.item_id

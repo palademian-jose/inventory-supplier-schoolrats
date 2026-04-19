@@ -64,7 +64,6 @@ CREATE TABLE items (
 );
 
 CREATE TABLE supplier_catalog_items (
-  id INT PRIMARY KEY AUTO_INCREMENT,
   supplier_id INT NOT NULL,
   item_id INT NOT NULL,
   supplier_sku VARCHAR(60),
@@ -72,7 +71,7 @@ CREATE TABLE supplier_catalog_items (
   supplier_price DECIMAL(10, 2) NOT NULL DEFAULT 0,
   lead_time_days INT NOT NULL DEFAULT 0,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE KEY uq_supplier_item (supplier_id, item_id),
+  PRIMARY KEY (supplier_id, item_id),
   CONSTRAINT fk_supplier_catalog_items_supplier FOREIGN KEY (supplier_id) REFERENCES suppliers(id) ON DELETE CASCADE,
   CONSTRAINT fk_supplier_catalog_items_item FOREIGN KEY (item_id) REFERENCES items(id) ON DELETE CASCADE
 );

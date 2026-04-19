@@ -89,7 +89,10 @@ export default function SupplierCatalogPage() {
 
   const handleDelete = async () => {
     try {
-      await deleteResource("/supplier-catalog", deleteTarget.id);
+      await deleteResource(
+        "/supplier-catalog",
+        `${deleteTarget.supplier_id}/${deleteTarget.item_id}`
+      );
       toast.success("Catalog entry deleted");
       setDeleteTarget(null);
       loadData();
