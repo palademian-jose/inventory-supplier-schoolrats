@@ -1,29 +1,45 @@
 import mysql from "mysql2/promise";
 
-// Serverless-compatible connection pool
 let pool: mysql.Pool | null = null;
 
 function getPool(): mysql.Pool {
   if (!pool) {
-    const useSsl = process.env.DB_SSL === "true";
-    pool = mysql.createPool({
-      host: process.env.DB_HOST,
-      port: Number(process.env.DB_PORT || 3306),
-      user: process.env.DB_USER,
-      password: process.env.DB_PASSWORD,
-      database: process.env.DB_NAME,
-      waitForConnections: true,
-      connectionLimit: 5,
-      maxIdle: 5,
-      idleTimeout: 60000,
-      enableKeepAlive: true,
-      ...(useSsl && {
+    const databaseUrl = process.env.DATABASE_URL;
+
+    if (databaseUrl) {
+      pool = mysql.createPool({
+        uri: databaseUrl,
+        waitForConnections: true,
+        connectionLimit: 5,
+        maxIdle: 5,
+        idleTimeout: 60000,
+        enableKeepAlive: true,
         ssl: {
           minVersion: "TLSv1.2",
           rejectUnauthorized: false,
         },
-      }),
-    });
+      });
+    } else {
+      const useSsl = process.env.DB_SSL === "true";
+      pool = mysql.createPool({
+        host: process.env.DB_HOST,
+        port: Number(process.env.DB_PORT || 3306),
+        user: process.env.DB_USER,
+        password: process.env.DB_PASSWORD,
+        database: process.env.DB_NAME,
+        waitForConnections: true,
+        connectionLimit: 5,
+        maxIdle: 5,
+        idleTimeout: 60000,
+        enableKeepAlive: true,
+        ...(useSsl && {
+          ssl: {
+            minVersion: "TLSv1.2",
+            rejectUnauthorized: false,
+          },
+        }),
+      });
+    }
   }
   return pool;
 }
