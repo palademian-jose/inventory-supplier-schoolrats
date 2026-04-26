@@ -1,7 +1,6 @@
 import mysql from "mysql2/promise";
 
 // Serverless-compatible connection pool
-// In serverless environments, we use a single connection to avoid pool exhaustion
 let pool: mysql.Pool | null = null;
 
 function getPool(): mysql.Pool {
@@ -18,7 +17,12 @@ function getPool(): mysql.Pool {
       maxIdle: 5,
       idleTimeout: 60000,
       enableKeepAlive: true,
-      ...(useSsl && { ssl: { rejectUnauthorized: true } }),
+      ...(useSsl && {
+        ssl: {
+          minVersion: "TLSv1.2",
+          rejectUnauthorized: false,
+        },
+      }),
     });
   }
   return pool;
