@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { useAuth } from "@/context/auth-context";
 import { DataTable } from "@/components/data-table";
 import { PageHeader } from "@/components/page-header";
 import { LoadingState } from "@/components/loading-state";
@@ -14,6 +15,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -54,6 +56,8 @@ interface POForm {
 }
 
 interface OrderDetail {
+  id: number;
+  supplier_id: number;
   order_number: string;
   supplier_name: string;
   status: string;
@@ -82,12 +86,14 @@ const emptyForm: POForm = {
 /* ---------- component ---------- */
 
 export default function PurchaseOrdersPage() {
+  const { user } = useAuth();
   const [orders, setOrders] = useState<Record<string, unknown>[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [supplierItems, setSupplierItems] = useState<SupplierCatalogItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<OrderDetail | null>(null);
+  const [editingOrderId, setEditingOrderId] = useState<number | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<POForm>({ ...emptyForm, items: [{ ...emptyLine }] });
@@ -201,6 +207,17 @@ export default function PurchaseOrdersPage() {
   };
 
   /* ---- create ---- */
+  const buildPayload = () => ({
+    ...form,
+    supplier_id: Number(form.supplier_id),
+    expected_delivery_date: form.expected_delivery_date || null,
+    items: form.items.map((line) => ({
+      item_id: Number(line.item_id),
+      quantity: Number(line.quantity),
+      unit_price: Number(line.unit_price),
+    })),
+  });
+
   const handleCreate = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!validateForm()) {
@@ -213,16 +230,7 @@ export default function PurchaseOrdersPage() {
       const res = await fetch("/api/purchase-orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...form,
-          supplier_id: Number(form.supplier_id),
-          expected_delivery_date: form.expected_delivery_date || null,
-          items: form.items.map((line) => ({
-            item_id: Number(line.item_id),
-            quantity: Number(line.quantity),
-            unit_price: Number(line.unit_price),
-          })),
-        }),
+        body: JSON.stringify(buildPayload()),
       });
 
       if (!res.ok) {
@@ -237,6 +245,40 @@ export default function PurchaseOrdersPage() {
       loadData();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Unable to create purchase order");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleUpdate = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!editingOrderId) return;
+    if (!validateForm()) {
+      toast.error("Please complete the purchase order form");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/purchase-orders/${editingOrderId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(buildPayload()),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.message || "Unable to update purchase order");
+      }
+
+      toast.success("Purchase order updated");
+      setCreateOpen(false);
+      setEditingOrderId(null);
+      setErrors({});
+      setForm({ ...emptyForm, items: [{ ...emptyLine }] });
+      loadData();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to update purchase order");
     } finally {
       setSaving(false);
     }
@@ -272,6 +314,50 @@ export default function PurchaseOrdersPage() {
     }
   };
 
+  const editOrder = async (row: Record<string, unknown>) => {
+    try {
+      const res = await fetch(`/api/purchase-orders/${row.id}`);
+      if (!res.ok) throw new Error("Failed to load purchase order details");
+      const order = (await res.json()) as OrderDetail;
+
+      if (order.status === "Received") {
+        throw new Error("Received purchase orders cannot be edited");
+      }
+
+      setEditingOrderId(order.id);
+      setForm({
+        supplier_id: String(order.supplier_id),
+        status: order.status,
+        expected_delivery_date: order.expected_delivery_date?.slice(0, 10) || "",
+        notes: order.notes || "",
+        items: order.details.map((detail) => ({
+          item_id: String(detail.item_id ?? ""),
+          quantity: String(detail.quantity ?? ""),
+          unit_price: String(detail.unit_price ?? ""),
+        })),
+      });
+      setErrors({});
+      setCreateOpen(true);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to edit purchase order");
+    }
+  };
+
+  const deleteOrder = async (row: Record<string, unknown>) => {
+    try {
+      const res = await fetch(`/api/purchase-orders/${row.id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.message || "Unable to delete purchase order");
+      }
+
+      toast.success("Purchase order deleted");
+      loadData();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to delete purchase order");
+    }
+  };
+
   if (loading) return <LoadingState label="Loading purchase orders..." />;
 
   return (
@@ -284,7 +370,7 @@ export default function PurchaseOrdersPage() {
             title="Purchase Orders"
             description="Create simple purchase orders with multiple items."
             actions={
-              <Button onClick={() => { setForm({ ...emptyForm, items: [{ ...emptyLine }] }); setErrors({}); setCreateOpen(true); }}>
+              <Button onClick={() => { setEditingOrderId(null); setForm({ ...emptyForm, items: [{ ...emptyLine }] }); setErrors({}); setCreateOpen(true); }}>
                 <Plus className="mr-1.5 h-4 w-4" />
                 New Purchase Order
               </Button>
@@ -322,7 +408,7 @@ export default function PurchaseOrdersPage() {
         emptyTitle="No purchase orders yet"
         emptyDescription="Create a purchase order to demonstrate supplier procurement and stock receipt flow."
         emptyAction={
-          <Button onClick={() => { setForm({ ...emptyForm, items: [{ ...emptyLine }] }); setErrors({}); setCreateOpen(true); }}>
+          <Button onClick={() => { setEditingOrderId(null); setForm({ ...emptyForm, items: [{ ...emptyLine }] }); setErrors({}); setCreateOpen(true); }}>
             <Plus className="mr-1.5 h-4 w-4" />
             New Purchase Order
           </Button>
@@ -332,6 +418,16 @@ export default function PurchaseOrdersPage() {
             <Button variant="outline" size="sm" onClick={() => viewOrder(row)}>
               View
             </Button>
+            {user?.role === "admin" && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => editOrder(row)}
+                disabled={row.status === "Received"}
+              >
+                Edit
+              </Button>
+            )}
             <Button
               variant="outline"
               size="sm"
@@ -347,6 +443,16 @@ export default function PurchaseOrdersPage() {
             >
               Receive
             </Button>
+            {user?.role === "admin" && (
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => deleteOrder(row)}
+                disabled={row.status === "Received"}
+              >
+                Delete
+              </Button>
+            )}
           </div>
         )}
       />
@@ -355,10 +461,10 @@ export default function PurchaseOrdersPage() {
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Create Purchase Order</DialogTitle>
+            <DialogTitle>{editingOrderId ? "Edit Purchase Order" : "Create Purchase Order"}</DialogTitle>
           </DialogHeader>
 
-          <form className="space-y-5" onSubmit={handleCreate}>
+          <form className="space-y-5" onSubmit={editingOrderId ? handleUpdate : handleCreate}>
             <div>
               <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Order Setup
@@ -592,13 +698,13 @@ export default function PurchaseOrdersPage() {
 
             {/* Actions */}
             <div className="flex justify-end gap-3">
-              <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={saving}>
-                {saving ? "Creating..." : "Create Order"}
-              </Button>
-            </div>
+                <Button type="button" variant="outline" onClick={() => { setCreateOpen(false); setEditingOrderId(null); }}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={saving}>
+                  {saving ? (editingOrderId ? "Saving..." : "Creating...") : (editingOrderId ? "Save Changes" : "Create Order")}
+                </Button>
+              </div>
           </form>
         </DialogContent>
       </Dialog>
@@ -615,20 +721,21 @@ export default function PurchaseOrdersPage() {
                 ? `Purchase Order ${selectedOrder.order_number}`
                 : "Purchase Order"}
             </DialogTitle>
+            <DialogDescription>
+              Review supplier, approval, and line item details for this order.
+            </DialogDescription>
           </DialogHeader>
 
           {selectedOrder && (
             <div className="space-y-5">
-              <div className="grid gap-3 md:grid-cols-3">
-                <div className="rounded-lg border bg-muted/50 px-4 py-4">
+              <div className="grid gap-3 rounded-xl border bg-muted/40 p-4 md:grid-cols-3">
+                <div>
                   <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    Supplier
+                    Order Number
                   </p>
-                  <p className="mt-2 text-sm font-medium">
-                    {selectedOrder.supplier_name}
-                  </p>
+                  <p className="mt-2 text-base font-semibold">{selectedOrder.order_number}</p>
                 </div>
-                <div className="rounded-lg border bg-muted/50 px-4 py-4">
+                <div>
                   <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                     Status
                   </p>
@@ -636,12 +743,23 @@ export default function PurchaseOrdersPage() {
                     <StatusBadge value={selectedOrder.status} />
                   </div>
                 </div>
-                <div className="rounded-lg border bg-muted/50 px-4 py-4">
+                <div>
                   <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                     Total Amount
                   </p>
-                  <p className="mt-2 text-sm font-medium">
+                  <p className="mt-2 text-base font-semibold">
                     ${Number(selectedOrder.total_amount).toFixed(2)}
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                <div className="rounded-lg border bg-muted/50 px-4 py-4">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Supplier
+                  </p>
+                  <p className="mt-2 text-sm font-medium">
+                    {selectedOrder.supplier_name}
                   </p>
                 </div>
                 <div className="rounded-lg border bg-muted/50 px-4 py-4">
@@ -694,43 +812,51 @@ export default function PurchaseOrdersPage() {
                   <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                     Notes
                   </p>
-                  <p className="mt-2 text-sm font-medium">
+                  <p className="mt-2 whitespace-pre-wrap text-sm font-medium">
                     {selectedOrder.notes || "-"}
                   </p>
                 </div>
               </div>
 
-              <DataTable
-                columns={[
-                  { key: "item_name", label: "Item" },
-                  { key: "item_category", label: "Category" },
-                  {
-                    key: "unit_symbol",
-                    label: "Unit",
-                    render: (row) => (row.unit_symbol as string) || "-",
-                  },
-                  { key: "quantity", label: "Ordered" },
-                  { key: "received_quantity", label: "Received" },
-                  {
-                    key: "unit_price",
-                    label: "Unit Price",
-                    render: (row) => `$${Number(row.unit_price).toFixed(2)}`,
-                  },
-                  {
-                    key: "line_total",
-                    label: "Line Total",
-                    render: (row) => `$${Number(row.line_total).toFixed(2)}`,
-                  },
-                  {
-                    key: "remarks",
-                    label: "Remarks",
-                    render: (row) => (row.remarks as string) || "-",
-                  },
-                ]}
-                rows={selectedOrder.details}
-                emptyTitle="No line items"
-                emptyDescription="This purchase order has no saved line items."
-              />
+              <div className="space-y-3">
+                <div>
+                  <p className="text-sm font-semibold">Line Items</p>
+                  <p className="text-sm text-muted-foreground">
+                    Ordered quantities, received quantities, and pricing for this purchase order.
+                  </p>
+                </div>
+                <DataTable
+                  columns={[
+                    { key: "item_name", label: "Item" },
+                    { key: "item_category", label: "Category" },
+                    {
+                      key: "unit_symbol",
+                      label: "Unit",
+                      render: (row) => (row.unit_symbol as string) || "-",
+                    },
+                    { key: "quantity", label: "Ordered" },
+                    { key: "received_quantity", label: "Received" },
+                    {
+                      key: "unit_price",
+                      label: "Unit Price",
+                      render: (row) => `$${Number(row.unit_price).toFixed(2)}`,
+                    },
+                    {
+                      key: "line_total",
+                      label: "Line Total",
+                      render: (row) => `$${Number(row.line_total).toFixed(2)}`,
+                    },
+                    {
+                      key: "remarks",
+                      label: "Remarks",
+                      render: (row) => (row.remarks as string) || "-",
+                    },
+                  ]}
+                  rows={selectedOrder.details}
+                  emptyTitle="No line items"
+                  emptyDescription="This purchase order has no saved line items."
+                />
+              </div>
             </div>
           )}
         </DialogContent>
