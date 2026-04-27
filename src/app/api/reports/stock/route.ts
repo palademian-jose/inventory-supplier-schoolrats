@@ -233,9 +233,9 @@ export async function GET(request: NextRequest) {
     }
 
     const pdfBytes = await pdfDoc.save();
-    const pdfBlob = new Blob([pdfBytes], { type: "application/pdf" });
+    const pdfBuffer = Buffer.from(pdfBytes);
 
-    return new Response(pdfBlob, {
+    return new Response(pdfBuffer, {
       headers: {
         "Content-Type": "application/pdf",
         "Content-Disposition": `attachment; filename="${type}-report.pdf"`,
