@@ -62,7 +62,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
 
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
-    await requireAuth("admin", "staff");
+    await requireAuth("admin");
     const { entity } = await params;
     const config = ENTITIES[entity];
     if (!config) throw new ApiError(404, "Resource not found");

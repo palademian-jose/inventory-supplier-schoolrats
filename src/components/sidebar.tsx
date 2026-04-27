@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { X } from "lucide-react";
-import { navigationItems } from "@/lib/navigation";
+import { useAuth } from "@/context/auth-context";
+import { getNavigationItemsForRole } from "@/lib/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
@@ -16,6 +17,8 @@ interface SidebarProps {
 
 function SidebarContent({ onClose }: { onClose?: () => void }) {
   const pathname = usePathname();
+  const { user } = useAuth();
+  const navigationItems = getNavigationItemsForRole(user?.role);
 
   return (
     <div className="flex h-full flex-col px-4 pb-4 pt-5">

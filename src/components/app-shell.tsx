@@ -1,11 +1,28 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { Sidebar } from "@/components/sidebar";
 import { Topbar } from "@/components/topbar";
+import { useAuth } from "@/context/auth-context";
+import { canAccessPath } from "@/lib/navigation";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const pathname = usePathname();
+  const router = useRouter();
+  const { user, isLoading } = useAuth();
+
+  useEffect(() => {
+    if (isLoading || !user) return;
+    if (!canAccessPath(pathname, user.role)) {
+      router.replace("/");
+    }
+  }, [isLoading, pathname, router, user]);
+
+  if (!isLoading && user && !canAccessPath(pathname, user.role)) {
+    return null;
+  }
 
   return (
     <div className="flex min-h-screen bg-muted/30">

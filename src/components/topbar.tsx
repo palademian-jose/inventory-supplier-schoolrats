@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation";
 import { Menu, LogOut } from "lucide-react";
 import { useAuth } from "@/context/auth-context";
-import { navigationItems } from "@/lib/navigation";
+import { getNavigationItemsForRole } from "@/lib/navigation";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -20,6 +20,7 @@ interface TopbarProps {
 export function Topbar({ onOpenSidebar }: TopbarProps) {
   const pathname = usePathname();
   const { user, logout } = useAuth();
+  const navigationItems = getNavigationItemsForRole(user?.role);
 
   const currentItem = navigationItems.find((item) =>
     item.path === "/" ? pathname === "/" : pathname.startsWith(item.path)

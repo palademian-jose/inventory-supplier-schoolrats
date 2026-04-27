@@ -7,8 +7,8 @@ import { z } from "zod";
 const createPOSchema = z.object({
   supplier_id: z.coerce.number().int("Supplier is required"),
   status: z.enum(["Pending", "Approved", "Received"], { message: "Invalid status" }),
-  expected_delivery_date: z.string().optional().default(""),
-  notes: z.string().optional().default(""),
+  expected_delivery_date: z.string().nullish().transform((value) => value ?? ""),
+  notes: z.string().nullish().transform((value) => value ?? ""),
   items: z.array(z.object({
     item_id: z.coerce.number().int("Item is required"),
     quantity: z.coerce.number().int().min(1, "Quantity must be greater than zero"),

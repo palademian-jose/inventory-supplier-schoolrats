@@ -47,7 +47,7 @@ type RouteParams = { params: Promise<{ entity: string; id: string }> };
 
 export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
-    await requireAuth("admin", "staff");
+    await requireAuth("admin");
     const { entity, id } = await params;
     const config = ENTITIES[entity];
     if (!config) throw new ApiError(404, "Resource not found");

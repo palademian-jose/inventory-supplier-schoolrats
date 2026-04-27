@@ -33,7 +33,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    await requireAuth("admin", "staff");
+    await requireAuth("admin");
     const body = await request.json();
     const parsed = createCatalogSchema.safeParse(body);
 
