@@ -1,6 +1,7 @@
 import {
   Boxes,
   FolderTree,
+  FileText,
   LayoutDashboard,
   PackagePlus,
   ShoppingCart,
@@ -32,6 +33,7 @@ export const navigationItems: NavItem[] = [
   { label: "Purchase Orders", path: "/purchase-orders", icon: ShoppingCart, roles: ["admin", "staff"] },
   { label: "Transactions", path: "/transactions", icon: ReceiptText, roles: ["admin", "staff"] },
   { label: "Stock Issues", path: "/stock-issues", icon: UserRound, roles: ["admin", "staff"] },
+  { label: "Reports", path: "/reports", icon: FileText, roles: ["admin", "staff"] },
 ];
 
 export function getNavigationItemsForRole(role?: "admin" | "staff") {

@@ -96,6 +96,7 @@ export default function DashboardPage() {
     { label: "Add Supplier", href: "/suppliers" },
     { label: "Create Purchase Order", href: "/purchase-orders" },
     { label: "Record Stock Issue", href: "/stock-issues" },
+    { label: "Generate Reports", href: "/reports" },
   ];
 
   return (
