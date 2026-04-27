@@ -233,8 +233,12 @@ export async function GET(request: NextRequest) {
     }
 
     const pdfBytes = await pdfDoc.save();
+    const pdfBuffer = pdfBytes.buffer.slice(
+      pdfBytes.byteOffset,
+      pdfBytes.byteOffset + pdfBytes.byteLength
+    );
 
-    return new Response(pdfBytes, {
+    return new Response(pdfBuffer, {
       headers: {
         "Content-Type": "application/pdf",
         "Content-Disposition": `attachment; filename="${type}-report.pdf"`,
